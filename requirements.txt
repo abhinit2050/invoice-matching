@@ -1,0 +1,8 @@
+streamlit
+langgraph
+openai
+pymupdf
+pydantic
+reportlab
+pytest
+python-dotenv
