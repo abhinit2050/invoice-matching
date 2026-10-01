@@ -4,3 +4,4 @@ __pycache__/
 .env
 .DS_Store
 sample_docs/
+notepad.md

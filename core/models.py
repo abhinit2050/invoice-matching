@@ -90,9 +90,8 @@ class CheckResult(BaseModel):
 
 
 class MatchStatus(str, Enum):
-    MATCHED = "MATCHED"
-    DISCREPANCY_FOUND = "DISCREPANCY_FOUND"
-    NEEDS_REVIEW = "NEEDS_REVIEW"
+    PASS_ = "PASS"
+    REVIEW = "REVIEW"
 
 
 class MatchReport(BaseModel):
@@ -101,4 +100,5 @@ class MatchReport(BaseModel):
     po_number: str | None = None
     vendor_name: str | None = None
     checks: list[CheckResult] = []
-    discrepancies: list[str] = []
+    discrepancies: list[str] = []  # explanations from checks that found a confirmed mismatch
+    review_reasons: list[str] = []  # explanations from checks that couldn't be confidently compared

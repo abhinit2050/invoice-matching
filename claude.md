@@ -25,9 +25,11 @@ Python 3, Streamlit, LangGraph, OpenAI API (structured outputs), PyMuPDF, Pydant
 
 ## Non-negotiable rules
 - Money is always Decimal, never float. The LLM returns amounts as strings; convert in Pydantic validators.
-- The LLM only extracts data. It never decides MATCHED / DISCREPANCY_FOUND / NEEDS_REVIEW.
+- The LLM only extracts data. It never decides the overall match status.
 - Never invent or calculate missing financial values during extraction; keep them None.
-- NEEDS_REVIEW must never resolve to MATCHED.
+- Overall match status is PASS or REVIEW only (docs/specs.md section 7). Any confirmed
+  discrepancy or any inconclusive comparison must never resolve to PASS; when a match has
+  both, the REVIEW report explains both.
 - Errors are reported clearly and never crash the app.
 - Out of scope: RAG, databases, auth, OCR, three-way matching, ERP integration.
 

@@ -3,10 +3,13 @@ from __future__ import annotations
 import os
 from datetime import date
 
+from dotenv import load_dotenv
 from openai import OpenAI
 from pydantic import BaseModel
 
 from core.models import Invoice, PurchaseOrder
+
+load_dotenv()
 
 DEFAULT_MODEL = "gpt-4o-2024-08-06"
 

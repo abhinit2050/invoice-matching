@@ -227,36 +227,32 @@ If the PO does not contain enough information to calculate an expected total, fl
 
 ## 7. Matching Results
 
-The system must classify each matching attempt into one of three statuses.
+The system must classify each matching attempt into one of two statuses.
 
-### MATCHED
+### PASS
 
-All required checks pass within the configured tolerances.
+All checks pass within the configured tolerances, and every comparison could be
+completed confidently. No further action needed.
 
-### DISCREPANCY_FOUND
+### REVIEW
 
-One or more checks identify a confirmed discrepancy.
+Anything short of a clean PASS — a confirmed discrepancy, an ambiguous
+comparison, or both at once. A document requiring review must never be
+classified as PASS.
 
-Examples:
+The underlying checks (section 6) still distinguish a confirmed discrepancy
+from an inconclusive comparison internally (so the report can explain *why*
+review is needed), but both collapse to the single REVIEW status:
 
-- Unit price mismatch.
-- Quantity mismatch.
-- Incorrect PO reference.
-- Unexpected line item.
-- Total amount mismatch.
+- **Confirmed discrepancies** — e.g. unit price mismatch, quantity mismatch,
+  incorrect PO reference, unexpected line item, total amount mismatch.
+- **Inconclusive comparisons** — e.g. required fields are missing, a line item
+  cannot be matched confidently, the document contains ambiguous information,
+  the expected total cannot be calculated reliably.
 
-### NEEDS_REVIEW
-
-The system cannot confidently complete the comparison.
-
-Examples:
-
-- Required fields are missing.
-- A line item cannot be matched confidently.
-- The document contains ambiguous information.
-- The expected total cannot be calculated reliably.
-
-A document requiring review must not be classified as MATCHED.
+When a match has both kinds of findings, the REVIEW report surfaces both: the
+specific discrepancies found, and the specific reasons a human still needs to
+look at it.
 
 ---
 
@@ -370,11 +366,11 @@ Display:
 
 ### 9.4 Review Screen
 
-When the system cannot confidently complete matching:
+When the overall status is REVIEW:
 
-- Display the fields requiring review.
+- Display the confirmed discrepancies, if any (what mismatched and by how much).
+- Display the fields that couldn't be confidently compared, if any, and why.
 - Show the extracted values.
-- Explain why the comparison could not be completed.
 - Allow the user to inspect the extracted information.
 
 Manual correction and resubmission are optional extensions.
@@ -387,7 +383,7 @@ The system must generate a structured matching report.
 
 ### Example
 
-**Overall Status:** DISCREPANCY_FOUND
+**Overall Status:** REVIEW
 
 **Invoice Number:** INV-2026-001
 
