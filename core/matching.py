@@ -318,27 +318,40 @@ def check_total_amount(po: PurchaseOrder, invoice: Invoice) -> CheckResult:
 
 # ---------------------------------------------------------------------------
 # Orchestration
+#
+# Split into composable pieces (rather than one function) so the LangGraph
+# workflow (graph/workflow.py) can run "matching", "discrepancy identification"
+# and "report generation" as separate nodes per docs/specs.md section 8.2,
+# without reimplementing this logic a second time.
 # ---------------------------------------------------------------------------
 
-def match_invoice_to_po(po: PurchaseOrder, invoice: Invoice) -> MatchReport:
-    """Overall status is PASS or REVIEW only (docs/specs.md section 7). Per-check
-    results still distinguish a confirmed DISCREPANCY from an inconclusive REVIEW
-    internally, so the report can explain *why* review is needed — a REVIEW-worthy
-    match surfaces both the discrepancies found and the comparisons that couldn't
-    be confirmed."""
-    checks: list[CheckResult] = [
+def run_checks(po: PurchaseOrder, invoice: Invoice) -> list[CheckResult]:
+    return [
         check_vendor(po, invoice),
         check_po_reference(po, invoice),
         *check_line_items(po, invoice),
         check_total_amount(po, invoice),
     ]
 
+
+def split_checks(checks: list[CheckResult]) -> tuple[list[str], list[str]]:
+    """Returns (discrepancies, review_reasons) explanation strings."""
     discrepancies = [c.explanation for c in checks if c.status == CheckStatus.DISCREPANCY and c.explanation]
     review_reasons = [c.explanation for c in checks if c.status == CheckStatus.REVIEW and c.explanation]
-    status = MatchStatus.REVIEW if (discrepancies or review_reasons) else MatchStatus.PASS_
+    return discrepancies, review_reasons
 
+
+def derive_overall_status(discrepancies: list[str], review_reasons: list[str]) -> MatchStatus:
+    """Overall status is PASS or REVIEW only (docs/specs.md section 7). Any
+    confirmed discrepancy or any inconclusive comparison must never resolve to
+    PASS; when both exist, the REVIEW report surfaces both."""
+    return MatchStatus.REVIEW if (discrepancies or review_reasons) else MatchStatus.PASS_
+
+
+def build_match_report(po: PurchaseOrder, invoice: Invoice, checks: list[CheckResult]) -> MatchReport:
+    discrepancies, review_reasons = split_checks(checks)
     return MatchReport(
-        status=status,
+        status=derive_overall_status(discrepancies, review_reasons),
         invoice_number=invoice.invoice_number,
         po_number=po.po_number,
         vendor_name=invoice.vendor_name or po.vendor_name,
@@ -346,3 +359,10 @@ def match_invoice_to_po(po: PurchaseOrder, invoice: Invoice) -> MatchReport:
         discrepancies=discrepancies,
         review_reasons=review_reasons,
     )
+
+
+def match_invoice_to_po(po: PurchaseOrder, invoice: Invoice) -> MatchReport:
+    """Convenience single-call entry point for use outside the LangGraph
+    workflow (tests, ad-hoc scripts). The graph itself calls run_checks(),
+    split_checks() and derive_overall_status() as separate nodes."""
+    return build_match_report(po, invoice, run_checks(po, invoice))

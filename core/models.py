@@ -1,10 +1,19 @@
 from __future__ import annotations
 
+import re
 from datetime import date
 from decimal import Decimal, InvalidOperation
 from enum import Enum
 
 from pydantic import BaseModel, field_validator
+
+# Leading currency symbols vary ($, ₹, €...) and some source PDFs encode them
+# with a font whose glyph has no proper to-unicode mapping, so PyMuPDF reads
+# it back as an unrelated letter (e.g. "I10.00" instead of "₹10.00"). Rather
+# than hardcode every symbol, strip any non-digit/non-minus run surrounding
+# the number. Trailing "%" handles tax/discount rates extracted as "18%".
+_LEADING_JUNK_RE = re.compile(r"^[^\d\-]+")
+_TRAILING_PERCENT_RE = re.compile(r"%\s*$")
 
 
 def to_decimal(value: str | int | float | Decimal | None) -> Decimal | None:
@@ -15,7 +24,9 @@ def to_decimal(value: str | int | float | Decimal | None) -> Decimal | None:
     if isinstance(value, Decimal):
         return value
     if isinstance(value, str):
-        value = value.strip().replace(",", "").replace("$", "").replace("₹", "")
+        value = value.strip().replace(",", "")
+        value = _TRAILING_PERCENT_RE.sub("", value)
+        value = _LEADING_JUNK_RE.sub("", value)
         if value == "":
             return None
     try:
